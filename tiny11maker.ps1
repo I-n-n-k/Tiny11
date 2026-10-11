@@ -254,7 +254,13 @@ $packagePrefixes = 'AppUp.IntelManagementandSecurityStatus',
 'MSTeams',
 'MicrosoftTeams', 
 'Microsoft.WindowsTerminal',
-'Microsoft.549981C3F5F10'
+'Microsoft.549981C3F5F10',
+'Microsoft.WindowsCalculator',
+'Microsoft.Windows.Photos',
+'Microsoft.ScreenSketch',
+'Microsoft.WindowsStore',
+'Microsoft.StorePurchaseApp',
+'Microsoft.Windows.VoiceAccess'
 
 $packagesToRemove = $packages | Where-Object {
     $packageName = $_
@@ -268,6 +274,7 @@ Write-Output "Removing Edge:"
 Remove-Item -Path "$ScratchDisk\scratchdir\Program Files (x86)\Microsoft\Edge" -Recurse -Force | Out-Null
 Remove-Item -Path "$ScratchDisk\scratchdir\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force | Out-Null
 Remove-Item -Path "$ScratchDisk\scratchdir\Program Files (x86)\Microsoft\EdgeCore" -Recurse -Force | Out-Null
+Remove-Item -Path "$ScratchDisk\scratchdir\Program Files (x86)\Microsoft\EdgeWebView" -Recurse -Force -ErrorAction SilentlyContinue | Out-Null
 & 'takeown' '/f' "$ScratchDisk\scratchdir\Windows\System32\Microsoft-Edge-Webview" '/r' | Out-Null
 & 'icacls' "$ScratchDisk\scratchdir\Windows\System32\Microsoft-Edge-Webview" '/grant' "$($adminGroup.Value):(F)" '/T' '/C' | Out-Null
 Remove-Item -Path "$ScratchDisk\scratchdir\Windows\System32\Microsoft-Edge-Webview" -Recurse -Force | Out-Null
@@ -333,6 +340,7 @@ Set-RegistryValue 'HKLM\zNTUSER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explor
 Write-Output "Removing Edge related registries"
 Remove-RegistryValue "HKEY_LOCAL_MACHINE\zSOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge"
 Remove-RegistryValue "HKEY_LOCAL_MACHINE\zSOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge Update"
+Remove-RegistryValue "HKEY_LOCAL_MACHINE\zSOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView"
 Write-Output "Disabling OneDrive folder backup"
 Set-RegistryValue "HKLM\zSOFTWARE\Policies\Microsoft\Windows\OneDrive" "DisableFileSyncNGSC" "REG_DWORD" "1"
 Write-Output "Disabling Telemetry:"
@@ -532,4 +540,3 @@ if (Test-Path -Path "$PSScriptRoot\autounattend.xml") {
 Stop-Transcript
 
 exit
-

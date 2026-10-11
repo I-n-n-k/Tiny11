@@ -49,7 +49,6 @@ C:/path/to/your/tiny11/script.ps1 -ISO <letter> -SCRATCH <letter>
   <tbody>
     <tr>
       <th>Tiny11maker</th>
-      <th>Tiny11coremaker</th>
     </tr>
     <tr>
       <td>
@@ -79,15 +78,6 @@ C:/path/to/your/tiny11/script.ps1 -ISO <letter> -SCRATCH <letter>
           <li>OneDrive</li>
         </ul>
       </td>
-      <td>
-        <ul>
-          <li>all from regular tiny +</li>
-          <li>Windows Component Store (WinSxS)</li>
-          <li>Windows Defender (only disabled, can be enabled back if needed)</li>
-          <li>Windows Update (wouldn't work without WinSxS, enabling it would put the system in a state of failure)</li>
-          <li>WinRE</li>
-        </ul>
-      </td>
     </tr>
   </tbody>
 </table>
@@ -96,27 +86,3 @@ Keep in mind that **you cannot add back features in tiny11 core**! <br>
 You will be asked during image creation if you want to enable .net 3.5 support!
 
 ---
-
-## Known issues:
-- Although Edge is removed, there are some remnants in the Settings, but the app in itself is deleted. 
-- You might have to update Winget before being able to install any apps, using Microsoft Store.
-- Outlook and Dev Home might reappear after some time. This is an ongoing battle, though the latest script update tries to prevent this more aggressively.
-- If you are using this script on arm64, you might see a glimpse of an error while running the script. This is caused by the fact that the arm64 image doesn't have OneDriveSetup.exe included in the System32 folder.
-
----
-
-## Features to be implemented:
-- ~~disabling telemetry~~ (Implemented in the 04-29-24 release!)
-- ~~more ad suppression~~ (Partially implemented in the 09-06-25 release!)
-- improved language and arch detection
-- more flexibility in what to keep and what to delete
-- maybe a GUI???
-
-And that's pretty much it for now!
-## ❤️ Support the Project
-
-If this project has helped you, please consider showing your support! A small donation helps me dedicate more time to projects like this.
-Thank you!
-
-**[Patreon](http://patreon.com/ntdev) | [PayPal](http://paypal.me/ntdev2) | [Ko-fi](http://ko-fi.com/ntdev)**
-Thanks for trying it and let me know how you like it!
