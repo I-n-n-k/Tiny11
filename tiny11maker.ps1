@@ -158,7 +158,6 @@ $wimFilePath = "$ScratchDisk\tiny11\sources\install.wim"
 try {
     Set-ItemProperty -Path $wimFilePath -Name IsReadOnly -Value $false -ErrorAction Stop
 } catch {
-    # This block will catch the error and suppress it.
 	Write-Error "$wimFilePath not found"
 }
 New-Item -ItemType Directory -Force -Path "$ScratchDisk\scratchdir" > $null
@@ -180,7 +179,6 @@ $lines = $imageInfo -split '\r?\n'
 foreach ($line in $lines) {
     if ($line -like '*Architecture : *') {
         $architecture = $line -replace 'Architecture : ',''
-        # If the architecture is x64, replace it with amd64
         if ($architecture -eq 'x64') {
             $architecture = 'amd64'
         }
@@ -210,6 +208,7 @@ $packagePrefixes = 'AppUp.IntelManagementandSecurityStatus',
 'Microsoft.BingSearch',
 'Microsoft.BingWeather',
 'Microsoft.Copilot',
+'Microsoft.CrossDeviceExperienceHost',
 'Microsoft.Windows.CrossDevice',
 'Microsoft.GamingApp',
 'Microsoft.GetHelp',
@@ -370,17 +369,85 @@ Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Teams' 'DisableInstallation
 Write-Output "Prevent installation of New Outlook":
 Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\Windows Mail' 'PreventRun' 'REG_DWORD' '1'
 
+# ==============================================================
+# FSOS-X PLAYBOOK TWEAKS & CUSTOM SETTINGS START
+# ==============================================================
+Write-Output "Applying FSOS-X Playbook Tweaks & User Custom Settings..."
+
+# [Phase 2 & 3] Security Mitigations, Privacy, SmartScreen, Delivery Optimization
+# 1. Disable Security Mitigations (Spectre/Meltdown)
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Control\Session Manager\Memory Management' 'FeatureSettingsOverride' 'REG_DWORD' '3'
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Control\Session Manager\Memory Management' 'FeatureSettingsOverrideMask' 'REG_DWORD' '3'
+# 2. Disable SmartScreen
+Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\System' 'EnableSmartScreen' 'REG_DWORD' '0'
+# 3. Disable Delivery Optimization (Phase 6)
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\DoSvc' 'Start' 'REG_DWORD' '4'
+# 4. Disable Cortana (Phase 3)
+Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\Windows Search' 'AllowCortana' 'REG_DWORD' '0'
+# 5. Disable Cloud Sync & Activity History (Phase 3)
+Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\System' 'EnableActivityFeed' 'REG_DWORD' '0'
+Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\System' 'PublishUserActivities' 'REG_DWORD' '0'
+Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\System' 'UploadUserActivities' 'REG_DWORD' '0'
+
+# [Phase 4] Gaming Optimized Tweaks (Input Lag, Network, Power)
+# 6. Disable Hibernation
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Control\Power' 'HibernateEnabled' 'REG_DWORD' '0'
+# 7. Disable Network Throttling for Gaming
+Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile' 'NetworkThrottlingIndex' 'REG_DWORD' '4294967295'
+Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile' 'SystemResponsiveness' 'REG_DWORD' '0'
+# 8. Optimize Win32PrioritySeparation
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Control\PriorityControl' 'Win32PrioritySeparation' 'REG_DWORD' '38'
+# 9. Reduce Mouse & Keyboard Data Queue Size (Lower Input Lag)
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\mouclass\Parameters' 'MouseDataQueueSize' 'REG_DWORD' '20'
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\kbdclass\Parameters' 'KeyboardDataQueueSize' 'REG_DWORD' '20'
+
+# [Phase 5] UI & Visuals (Dark Mode, Transparency, Animations)
+# 10. Enable Dark Mode
+Set-RegistryValue 'HKLM\zNTUSER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize' 'AppsUseLightTheme' 'REG_DWORD' '0'
+Set-RegistryValue 'HKLM\zNTUSER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize' 'SystemUsesLightTheme' 'REG_DWORD' '0'
+# 11. Disable Transparency
+Set-RegistryValue 'HKLM\zNTUSER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize' 'EnableTransparency' 'REG_DWORD' '0'
+# 12. Best Performance Visuals (Disable Animations)
+Set-RegistryValue 'HKLM\zNTUSER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' 'VisualFXSetting' 'REG_DWORD' '2'
+
+# [User Custom Requests] Specific Services, Accessibilities & Compatibility
+# 13. Disable Printing (Print Spooler)
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\Spooler' 'Start' 'REG_DWORD' '4'
+# 14. Disable Wi-Fi (WLAN AutoConfig)
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\WlanSvc' 'Start' 'REG_DWORD' '4'
+# 15. Disable Storage Sense
+Set-RegistryValue 'HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy' '01' 'REG_DWORD' '0'
+# 16. Disable Location Services
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\lfsvc' 'Start' 'REG_DWORD' '4'
+# 17. Disable Auto Update Driver
+Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'ExcludeWUDriversInQualityUpdate' 'REG_DWORD' '1'
+# 18. Disable Accessibility (Sticky Keys, Toggle Keys, Filter Keys shortcuts)
+Set-RegistryValue 'HKLM\zNTUSER\Control Panel\Accessibility\StickyKeys' 'Flags' 'REG_SZ' '506'
+Set-RegistryValue 'HKLM\zNTUSER\Control Panel\Accessibility\ToggleKeys' 'Flags' 'REG_SZ' '58'
+Set-RegistryValue 'HKLM\zNTUSER\Control Panel\Accessibility\Keyboard Response' 'Flags' 'REG_SZ' '122'
+# 19. Disable Weather/Widgets Taskbar Icon
+Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Dsh' 'AllowNewsAndInterests' 'REG_DWORD' '0'
+Set-RegistryValue 'HKLM\zNTUSER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'TaskbarDa' 'REG_DWORD' '0'
+
+# 20. Disable Cross Device Experience Host / Connected Devices Platform
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\CDPSvc' 'Start' 'REG_DWORD' '4'
+# 21. Disable Application Compatibility Enhancements (Program Compatibility Assistant)
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\PcaSvc' 'Start' 'REG_DWORD' '4'
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\AeLookupSvc' 'Start' 'REG_DWORD' '4'
+Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\AppCompat' 'DisableEngine' 'REG_DWORD' '1'
+Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\AppCompat' 'DisablePCA' 'REG_DWORD' '1'
+# ==============================================================
+# FSOS-X PLAYBOOK TWEAKS & CUSTOM SETTINGS END
+# ==============================================================
+
 Write-Host "Deleting scheduled task definition files..."
 $tasksPath = "$ScratchDisk\scratchdir\Windows\System32\Tasks"
 
-# Application Compatibility Appraiser
-Remove-Item -Path "$tasksPath\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" -Force -ErrorAction SilentlyContinue
+# Application Compatibility Appraiser & Experience (removes the entire folder completely)
+Remove-Item -Path "$tasksPath\Microsoft\Windows\Application Experience" -Recurse -Force -ErrorAction SilentlyContinue
 
 # Customer Experience Improvement Program (removes the entire folder and all tasks within it)
 Remove-Item -Path "$tasksPath\Microsoft\Windows\Customer Experience Improvement Program" -Recurse -Force -ErrorAction SilentlyContinue
-
-# Program Data Updater
-Remove-Item -Path "$tasksPath\Microsoft\Windows\Application Experience\ProgramDataUpdater" -Force -ErrorAction SilentlyContinue
 
 # Chkdsk Proxy
 Remove-Item -Path "$tasksPath\Microsoft\Windows\Chkdsk\Proxy" -Force -ErrorAction SilentlyContinue
