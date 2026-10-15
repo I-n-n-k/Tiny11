@@ -83,21 +83,15 @@ if ((Get-ExecutionPolicy) -eq 'Restricted') {
 # Check and run the script as admin if required
 $adminSID = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
 $adminGroup = $adminSID.Translate([System.Security.Principal.NTAccount])
-$myWindowsID=[System.Security.Principal.WindowsIdentity]::GetCurrent()
-$myWindowsPrincipal=new-object System.Security.Principal.WindowsPrincipal($myWindowsID)
-$adminRole=[System.Security.Principal.WindowsBuiltInRole]::Administrator
+$myWindowsID=[System.Security.Principal.WindowsIdentity]::GetCurrent()$myWindowsPrincipal=new-object System.Security.Principal.WindowsPrincipal($myWindowsID)$adminRole=[System.Security.Principal.WindowsBuiltInRole]::Administrator
 if (! $myWindowsPrincipal.IsInRole($adminRole))
 {
     Write-Output "Restarting Tiny11 image creator as admin in a new window, you can close this one."
     $newProcess = new-object System.Diagnostics.ProcessStartInfo "PowerShell";
-    $newProcess.Arguments = $myInvocation.MyCommand.Definition;
+    $newProcess.Arguments =$myInvocation.MyCommand.Definition;
     $newProcess.Verb = "runas";
     [System.Diagnostics.Process]::Start($newProcess);
     exit
-}
-
-if (-not (Test-Path -Path "$PSScriptRoot/autounattend.xml")) {
-    Invoke-RestMethod "https://raw.githubusercontent.com/ntdevlabs/tiny11builder/refs/heads/main/autounattend.xml" -OutFile "$PSScriptRoot/autounattend.xml"
 }
 
 # Start the transcript and prepare the window
@@ -107,16 +101,15 @@ $Host.UI.RawUI.WindowTitle = "Tiny11 image creator"
 Clear-Host
 Write-Output "Welcome to the tiny11 image creator! Release: 09-07-25"
 
-$hostArchitecture = $Env:PROCESSOR_ARCHITECTURE
+$hostArchitecture =$Env:PROCESSOR_ARCHITECTURE
 New-Item -ItemType Directory -Force -Path "$ScratchDisk\tiny11\sources" | Out-Null
 do {
-    if (-not $ISO) {
-        $DriveLetter = Read-Host "Please enter the drive letter for the Windows 11 image"
+    if (-not $ISO) {$DriveLetter = Read-Host "Please enter the drive letter for the Windows 11 image"
     } else {
-        $DriveLetter = $ISO
+        $DriveLetter =$ISO
     }
     if ($DriveLetter -match '^[c-zC-Z]$') {
-        $DriveLetter = $DriveLetter + ":"
+        $DriveLetter =$DriveLetter + ":"
         Write-Output "Drive letter set to $DriveLetter"
     } else {
         Write-Output "Invalid drive letter. Please enter a letter between C and Z."
@@ -126,11 +119,10 @@ do {
 if ((Test-Path "$DriveLetter\sources\boot.wim") -eq $false -or (Test-Path "$DriveLetter\sources\install.wim") -eq $false) {
     if ((Test-Path "$DriveLetter\sources\install.esd") -eq $true) {
         Write-Output "Found install.esd, converting to install.wim..."
-        Get-WindowsImage -ImagePath $DriveLetter\sources\install.esd
-        $index = Read-Host "Please enter the image index"
+        Get-WindowsImage -ImagePath $DriveLetter\sources\install.esd$index = Read-Host "Please enter the image index"
         Write-Output ' '
         Write-Output 'Converting install.esd to install.wim. This may take a while...'
-        Export-WindowsImage -SourceImagePath $DriveLetter\sources\install.esd -SourceIndex $index -DestinationImagePath $ScratchDisk\tiny11\sources\install.wim -Compressiontype Maximum -CheckIntegrity
+        Export-WindowsImage -SourceImagePath $DriveLetter\sources\install.esd -SourceIndex $index -DestinationImagePath$ScratchDisk\tiny11\sources\install.wim -Compressiontype Maximum -CheckIntegrity
     } else {
         Write-Output "Can't find Windows OS Installation files in the specified Drive Letter.."
         Write-Output "Please enter the correct DVD Drive Letter.."
@@ -140,47 +132,45 @@ if ((Test-Path "$DriveLetter\sources\boot.wim") -eq $false -or (Test-Path "$Driv
 
 Write-Output "Copying Windows image..."
 Copy-Item -Path "$DriveLetter\*" -Destination "$ScratchDisk\tiny11" -Recurse -Force | Out-Null
-Set-ItemProperty -Path "$ScratchDisk\tiny11\sources\install.esd" -Name IsReadOnly -Value $false > $null 2>&1
+Set-ItemProperty -Path "$ScratchDisk\tiny11\sources\install.esd" -Name IsReadOnly -Value $false >$null 2>&1
 Remove-Item "$ScratchDisk\tiny11\sources\install.esd" > $null 2>&1
 Write-Output "Copy complete!"
 Start-Sleep -Seconds 2
 Clear-Host
 Write-Output "Getting image information:"
-$ImagesIndex = (Get-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\install.wim).ImageIndex
-while ($ImagesIndex -notcontains $index) {
-    Get-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\install.wim
-    $index = Read-Host "Please enter the image index"
+$ImagesIndex = (Get-WindowsImage -ImagePath$ScratchDisk\tiny11\sources\install.wim).ImageIndex
+while ($ImagesIndex -notcontains$index) {
+    Get-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\install.wim$index = Read-Host "Please enter the image index"
 }
 Write-Output "Mounting Windows image. This may take a while."
 $wimFilePath = "$ScratchDisk\tiny11\sources\install.wim"
 & takeown "/F" $wimFilePath
 & icacls $wimFilePath "/grant" "$($adminGroup.Value):(F)"
 try {
-    Set-ItemProperty -Path $wimFilePath -Name IsReadOnly -Value $false -ErrorAction Stop
+    Set-ItemProperty -Path $wimFilePath -Name IsReadOnly -Value$false -ErrorAction Stop
 } catch {
 	Write-Error "$wimFilePath not found"
 }
 New-Item -ItemType Directory -Force -Path "$ScratchDisk\scratchdir" > $null
-Mount-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\install.wim -Index $index -Path $ScratchDisk\scratchdir
+Mount-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\install.wim -Index $index -Path$ScratchDisk\scratchdir
 
 $imageIntl = & dism /English /Get-Intl "/Image:$($ScratchDisk)\scratchdir"
-$languageLine = $imageIntl -split '\n' | Where-Object { $_ -match 'Default system UI language : ([a-zA-Z]{2}-[a-zA-Z]{2})' }
+$languageLine = $imageIntl -split '\n' \vert{} Where-Object {$_ -match 'Default system UI language : ([a-zA-Z]{2}-[a-zA-Z]{2})' }
 
 if ($languageLine) {
-    $languageCode = $Matches[1]
+    $languageCode =$Matches[1]
     Write-Output "Default system UI language code: $languageCode"
 } else {
     Write-Output "Default system UI language code not found."
 }
 
 $imageInfo = & 'dism' '/English' '/Get-WimInfo' "/wimFile:$($ScratchDisk)\tiny11\sources\install.wim" "/index:$index"
-$lines = $imageInfo -split '\r?\n'
+$lines =$imageInfo -split '\r?\n'
 
-foreach ($line in $lines) {
+foreach ($line in$lines) {
     if ($line -like '*Architecture : *') {
-        $architecture = $line -replace 'Architecture : ',''
-        if ($architecture -eq 'x64') {
-            $architecture = 'amd64'
+        $architecture =$line -replace 'Architecture : ',''
+        if ($architecture -eq 'x64') {$architecture = 'amd64'
         }
         Write-Output "Architecture: $architecture"
         break
@@ -195,8 +185,7 @@ Write-Output "Mounting complete! Performing removal of applications..."
 
 $packages = & 'dism' '/English' "/image:$($ScratchDisk)\scratchdir" '/Get-ProvisionedAppxPackages' |
     ForEach-Object {
-        if ($_ -match 'PackageName : (.*)') {
-            $matches[1]
+        if ($_ -match 'PackageName : (.*)') {$matches[1]
         }
     }
 
@@ -204,13 +193,16 @@ $packagePrefixes = 'AppUp.IntelManagementandSecurityStatus',
 'Clipchamp.Clipchamp', 
 'DolbyLaboratories.DolbyAccess',
 'DolbyLaboratories.DolbyDigitalPlusDecoderOEM',
+'Microsoft.ApplicationCompatibilityEnhancements',
 'Microsoft.BingNews',
 'Microsoft.BingSearch',
 'Microsoft.BingWeather',
 'Microsoft.Copilot',
 'Microsoft.CrossDeviceExperienceHost',
 'Microsoft.Windows.CrossDevice',
+'MicrosoftWindows.CrossDevice',
 'Microsoft.GamingApp',
+'Microsoft.GamingServices',
 'Microsoft.GetHelp',
 'Microsoft.Getstarted',
 'Microsoft.Microsoft3DViewer',
@@ -261,29 +253,107 @@ $packagePrefixes = 'AppUp.IntelManagementandSecurityStatus',
 'Microsoft.StorePurchaseApp',
 'Microsoft.Windows.VoiceAccess'
 
-$packagesToRemove = $packages | Where-Object {
-    $packageName = $_
+$packagesToRemove =$packages | Where-Object {
+    $packageName =$_
     $packagePrefixes -contains ($packagePrefixes | Where-Object { $packageName -like "*$_*" })
 }
-foreach ($package in $packagesToRemove) {
+foreach ($package in$packagesToRemove) {
     & 'dism' '/English' "/image:$($ScratchDisk)\scratchdir" '/Remove-ProvisionedAppxPackage' "/PackageName:$package"
 }
 
-Write-Output "Removing Edge:"
-Remove-Item -Path "$ScratchDisk\scratchdir\Program Files (x86)\Microsoft\Edge" -Recurse -Force | Out-Null
-Remove-Item -Path "$ScratchDisk\scratchdir\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force | Out-Null
-Remove-Item -Path "$ScratchDisk\scratchdir\Program Files (x86)\Microsoft\EdgeCore" -Recurse -Force | Out-Null
-Remove-Item -Path "$ScratchDisk\scratchdir\Program Files (x86)\Microsoft\EdgeWebView" -Recurse -Force -ErrorAction SilentlyContinue | Out-Null
-& 'takeown' '/f' "$ScratchDisk\scratchdir\Windows\System32\Microsoft-Edge-Webview" '/r' | Out-Null
-& 'icacls' "$ScratchDisk\scratchdir\Windows\System32\Microsoft-Edge-Webview" '/grant' "$($adminGroup.Value):(F)" '/T' '/C' | Out-Null
-Remove-Item -Path "$ScratchDisk\scratchdir\Windows\System32\Microsoft-Edge-Webview" -Recurse -Force | Out-Null
-Write-Output "Removing OneDrive:"
-& 'takeown' '/f' "$ScratchDisk\scratchdir\Windows\System32\OneDriveSetup.exe" | Out-Null
-& 'icacls' "$ScratchDisk\scratchdir\Windows\System32\OneDriveSetup.exe" '/grant' "$($adminGroup.Value):(F)" '/T' '/C' | Out-Null
-Remove-Item -Path "$ScratchDisk\scratchdir\Windows\System32\OneDriveSetup.exe" -Force | Out-Null
+# -------------------------------------------------------------
+# REMOVE SPECIFIC SYSTEM PACKAGES (PAYLOAD COMPONENTS)
+# -------------------------------------------------------------
+Write-Output "Removing Specific System Component Payloads (CrossDevice, Xbox, GameOverlay, GamingUI, CaptureService)..."
+$systemPackages = & 'dism' '/English' "/image:$($ScratchDisk)\scratchdir" '/Get-Packages' |
+    ForEach-Object {
+        if ($_ -match 'Package Identity : (.*(?:crossdevice-webcam\vert{}Xbox\vert{}GamingOverlay\vert{}GameOverlay\vert{}gaming-ui\vert{}captureservice).*)') {$matches[1].Trim()
+        }
+    }
+foreach ($sysPkg in$systemPackages) {
+    & 'dism' '/English' "/image:$($ScratchDisk)\scratchdir" '/Remove-Package' "/PackageName:$sysPkg"
+}
+
+# -------------------------------------------------------------
+# REMOVE OPTIONAL FEATURES & CAPABILITIES (TINY11-RECIPE: XPS, LEGACY, WORKFOLDERS)
+# -------------------------------------------------------------
+Write-Output "Removing Optional Capabilities (XPS, WordPad, Steps Recorder, Math Recognizer, WorkFolders)..."
+$capabilities = @('XPS.Viewer~~~~0.0.1.0', 'Microsoft.Windows.WordPad~~~~0.0.1.0', 'App.StepsRecorder~~~~0.0.1.0', 'MathRecognizer~~~~0.0.1.0')
+foreach ($cap in$capabilities) {
+    & 'dism' '/English' "/image:$($ScratchDisk)\scratchdir" '/Remove-Capability' "/CapabilityName:$cap"
+}
+& 'dism' '/English' "/image:$($ScratchDisk)\scratchdir" '/Disable-Feature' '/FeatureName:WorkFolders-Client' '/Remove'
+# -------------------------------------------------------------
+
+# -------------------------------------------------------------
+# NUCLEAR OPTION: FORCE DELETE WINSXS COMPONENT PAYLOADS & PHYSICAL FILES
+# -------------------------------------------------------------
+Write-Output "Nuking Game Bar, Xbox, Edge, OneDrive, and WinSxS Component Payloads..."
+
+# 1. Hancurkan Component Payload Game Bar langsung dari akar WinSxS (amd64 & wow64)
+$winSxsPaths = @(
+    "$ScratchDisk\scratchdir\Windows\WinSxS\*windows-gaming-ui-gamebar-component*",
+    "$ScratchDisk\scratchdir\Windows\WinSxS\*captureservice*",
+    "$ScratchDisk\scratchdir\Windows\WinSxS\*xboxgamingoverlay*"
+)
+
+foreach ($path in$winSxsPaths) {
+    $foundSxS = Get-Item -Path$path -ErrorAction SilentlyContinue
+    foreach ($sxsFolder in$foundSxS) {
+        Write-Output "Destroying WinSxS Payload: $($sxsFolder.Name)"
+        & 'takeown' '/f' $sxsFolder.FullName '/r' '/d' 'Y' | Out-Null
+        & 'icacls' $sxsFolder.FullName '/grant' "$($adminGroup.Value):(F)" '/t' '/c' '/q' | Out-Null
+        Remove-Item -Path $sxsFolder.FullName -Recurse -Force -ErrorAction SilentlyContinue | Out-Null
+    }
+}
+
+# 2. Hancurkan Folder Aplikasi
+$nukePaths = @(
+    "$ScratchDisk\scratchdir\Program Files (x86)\Microsoft\Edge",
+    "$ScratchDisk\scratchdir\Program Files (x86)\Microsoft\EdgeUpdate",
+    "$ScratchDisk\scratchdir\Program Files (x86)\Microsoft\EdgeCore",
+    "$ScratchDisk\scratchdir\Program Files (x86)\Microsoft\EdgeWebView",
+    "$ScratchDisk\scratchdir\Windows\System32\Microsoft-Edge-Webview",
+    "$ScratchDisk\scratchdir\Program Files\WindowsApps\Microsoft.XboxGamingOverlay*",
+    "$ScratchDisk\scratchdir\Program Files\WindowsApps\Microsoft.XboxGameOverlay*",
+    "$ScratchDisk\scratchdir\Program Files\WindowsApps\Microsoft.GamingApp*",
+    "$ScratchDisk\scratchdir\Windows\SystemApps\Microsoft.XboxGameCallableUI*"
+)
+
+foreach ($path in$nukePaths) {
+    $foundFolders = Get-Item -Path$path -ErrorAction SilentlyContinue
+    foreach ($folder in$foundFolders) {
+        Write-Output "Force Deleting Folder: $($folder.FullName)"
+        & 'takeown' '/f' $folder.FullName '/r' '/d' 'Y' | Out-Null
+        & 'icacls' $folder.FullName '/grant' "$($adminGroup.Value):(F)" '/t' '/c' '/q' | Out-Null
+        Remove-Item -Path $folder.FullName -Recurse -Force -ErrorAction SilentlyContinue | Out-Null
+    }
+}
+
+# 3. Hancurkan File Sistem Eksekusi
+$sysFiles = @(
+    "OneDriveSetup.exe", 
+    "bcastdvr.exe", 
+    "GameBarPresenceWriter.exe", 
+    "CaptureService.dll"
+)
+
+foreach ($file in$sysFiles) {
+    $target = "$ScratchDisk\scratchdir\Windows\System32\$file"
+    if (Test-Path $target) {
+        Write-Output "Force Deleting File: $file"
+        & 'takeown' '/f' $target | Out-Null
+        & 'icacls' $target '/grant' "$($adminGroup.Value):(F)" '/q' | Out-Null
+        Remove-Item -Path $target -Force -ErrorAction SilentlyContinue | Out-Null
+    }
+}
 Write-Output "Removal complete!"
 Start-Sleep -Seconds 2
 Clear-Host
+
+# -------------------------------------------------------------
+# REGISTRY TWEAKS
+# -------------------------------------------------------------
 Write-Output "Loading registry..."
 reg load HKLM\zCOMPONENTS $ScratchDisk\scratchdir\Windows\System32\config\COMPONENTS | Out-Null
 reg load HKLM\zDEFAULT $ScratchDisk\scratchdir\Windows\System32\config\default | Out-Null
@@ -327,7 +397,6 @@ Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent' 'Disa
 Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent' 'DisableCloudOptimizedContent' 'REG_DWORD' '1'
 Write-Output "Enabling Local Accounts on OOBE:"
 Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\OOBE' 'BypassNRO' 'REG_DWORD' '1'
-Copy-Item -Path "$PSScriptRoot\autounattend.xml" -Destination "$ScratchDisk\scratchdir\Windows\System32\Sysprep\autounattend.xml" -Force | Out-Null
 
 Write-Output "Disabling Reserved Storage:"
 Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\ReserveManager' 'ShippedWithReserves' 'REG_DWORD' '0'
@@ -372,7 +441,7 @@ Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\Windows Mail' 'Prev
 # ==============================================================
 # FSOS-X PLAYBOOK TWEAKS & CUSTOM SETTINGS START
 # ==============================================================
-Write-Output "Applying FSOS-X Playbook Tweaks & User Custom Settings..."
+Write-Output "Applying FSOS-X Playbook Tweaks, Recipe JSON, & User Custom Settings..."
 
 # [Phase 2 & 3] Security Mitigations, Privacy, SmartScreen, Delivery Optimization
 # 1. Disable Security Mitigations (Spectre/Meltdown)
@@ -419,8 +488,11 @@ Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\WlanSvc' 'Start' 'REG_DWO
 Set-RegistryValue 'HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy' '01' 'REG_DWORD' '0'
 # 16. Disable Location Services
 Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\lfsvc' 'Start' 'REG_DWORD' '4'
+
 # 17. Disable Auto Update Driver
 Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'ExcludeWUDriversInQualityUpdate' 'REG_DWORD' '1'
+Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching' 'SearchOrderConfig' 'REG_DWORD' '0'
+
 # 18. Disable Accessibility (Sticky Keys, Toggle Keys, Filter Keys shortcuts)
 Set-RegistryValue 'HKLM\zNTUSER\Control Panel\Accessibility\StickyKeys' 'Flags' 'REG_SZ' '506'
 Set-RegistryValue 'HKLM\zNTUSER\Control Panel\Accessibility\ToggleKeys' 'Flags' 'REG_SZ' '58'
@@ -436,6 +508,40 @@ Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\PcaSvc' 'Start' 'REG_DWOR
 Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\AeLookupSvc' 'Start' 'REG_DWORD' '4'
 Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\AppCompat' 'DisableEngine' 'REG_DWORD' '1'
 Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\AppCompat' 'DisablePCA' 'REG_DWORD' '1'
+
+# 22. Disable Windows Recall / AI Data Analysis (From tiny11-recipe)
+Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\WindowsAI' 'DisableAIDataAnalysis' 'REG_DWORD' '1'
+
+# 23. Remove & Disable Xbox Services, Game Bar, Capture Service (ExpertActions)
+Set-RegistryValue 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\GameDVR' 'AllowGameDVR' 'REG_DWORD' '0'
+Set-RegistryValue 'HKLM\zNTUSER\System\GameConfigStore' 'GameDVR_Enabled' 'REG_DWORD' '0'
+Set-RegistryValue 'HKLM\zNTUSER\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled' 'REG_DWORD' '0'
+
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\XblAuthManager' 'Start' 'REG_DWORD' '4'
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\XblGameSave' 'Start' 'REG_DWORD' '4'
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\XboxNetApiSvc' 'Start' 'REG_DWORD' '4'
+Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\XboxGipSvc' 'Start' 'REG_DWORD' '4'
+Remove-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Services\CaptureService'
+
+# 24. Pause Windows Update (Max 2077)
+Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'PauseFeatureUpdatesStartTime' 'REG_SZ' '2024-01-01T00:00:00Z'
+Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'PauseQualityUpdatesStartTime' 'REG_SZ' '2024-01-01T00:00:00Z'
+Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'PauseUpdatesStartTime' 'REG_SZ' '2024-01-01T00:00:00Z'
+Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'PauseFeatureUpdatesEndTime' 'REG_SZ' '2077-12-31T23:59:59Z'
+Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'PauseQualityUpdatesEndTime' 'REG_SZ' '2077-12-31T23:59:59Z'
+Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'PauseUpdatesExpiryTime' 'REG_SZ' '2077-12-31T23:59:59Z'
+
+# 25. Silent Kill Game Bar URL Protocol (Redirecting ms-gamebar to systray.exe)
+Write-Output "Nullifying ms-gamebar & ms-gamebarservices URL Protocols..."
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebar' '/f' '/ve' '/d' 'URL:ms-gamebar' | Out-Null
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebar' '/f' '/v' 'URL Protocol' '/d' '' | Out-Null
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebar' '/f' '/v' 'NoOpenWith' '/d' '' | Out-Null
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebar\shell\open\command' '/f' '/ve' '/d' "`"C:\Windows\System32\systray.exe`"" | Out-Null
+
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebarservices' '/f' '/ve' '/d' 'URL:ms-gamebarservices' | Out-Null
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebarservices' '/f' '/v' 'URL Protocol' '/d' '' | Out-Null
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebarservices' '/f' '/v' 'NoOpenWith' '/d' '' | Out-Null
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebarservices\shell\open\command' '/f' '/ve' '/d' "`"C:\Windows\System32\systray.exe`"" | Out-Null
 # ==============================================================
 # FSOS-X PLAYBOOK TWEAKS & CUSTOM SETTINGS END
 # ==============================================================
@@ -478,8 +584,8 @@ Write-Output "Mounting boot image:"
 $wimFilePath = "$ScratchDisk\tiny11\sources\boot.wim"
 & takeown "/F" $wimFilePath | Out-Null
 & icacls $wimFilePath "/grant" "$($adminGroup.Value):(F)"
-Set-ItemProperty -Path $wimFilePath -Name IsReadOnly -Value $false
-Mount-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\boot.wim -Index 2 -Path $ScratchDisk\scratchdir
+Set-ItemProperty -Path $wimFilePath -Name IsReadOnly -Value$false
+Mount-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\boot.wim -Index 2 -Path$ScratchDisk\scratchdir
 Write-Output "Loading registry..."
 reg load HKLM\zCOMPONENTS $ScratchDisk\scratchdir\Windows\System32\config\COMPONENTS
 reg load HKLM\zDEFAULT $ScratchDisk\scratchdir\Windows\System32\config\default
@@ -511,8 +617,7 @@ Write-Output "Unmounting image..."
 Dismount-WindowsImage -Path $ScratchDisk\scratchdir -Save
 Clear-Host
 Write-Output "The tiny11 image is now completed. Proceeding with the making of the ISO..."
-Write-Output "Copying unattended file for bypassing MS account on OOBE..."
-Copy-Item -Path "$PSScriptRoot\autounattend.xml" -Destination "$ScratchDisk\tiny11\autounattend.xml" -Force | Out-Null
+
 Write-Output "Creating ISO image..."
 $ADKDepTools = "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\$hostarchitecture\Oscdimg"
 $localOSCDIMGPath = "$PSScriptRoot\oscdimg.exe"
@@ -526,7 +631,7 @@ if ([System.IO.Directory]::Exists($ADKDepTools)) {
 
     if (-not (Test-Path -Path $localOSCDIMGPath)) {
         Write-Output "Downloading oscdimg.exe..."
-        Invoke-WebRequest -Uri $url -OutFile $localOSCDIMGPath
+        Invoke-WebRequest -Uri $url -OutFile$localOSCDIMGPath
 
         if (Test-Path $localOSCDIMGPath) {
             Write-Output "oscdimg.exe downloaded successfully."
@@ -538,7 +643,7 @@ if ([System.IO.Directory]::Exists($ADKDepTools)) {
         Write-Output "oscdimg.exe already exists locally."
     }
 
-    $OSCDIMG = $localOSCDIMGPath
+    $OSCDIMG =$localOSCDIMGPath
 }
 
 & "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$ScratchDisk\tiny11\boot\etfsboot.com#pEF,e,b$ScratchDisk\tiny11\efi\microsoft\boot\efisys.bin" "$ScratchDisk\tiny11" "$PSScriptRoot\tiny11.iso"
@@ -554,8 +659,6 @@ Get-Volume -DriveLetter $DriveLetter[0] | Get-DiskImage | Dismount-DiskImage
 Write-Output "Iso drive ejected"
 Write-Output "Removing oscdimg.exe..."
 Remove-Item -Path "$PSScriptRoot\oscdimg.exe" -Force -ErrorAction SilentlyContinue
-Write-Output "Removing autounattend.xml..."
-Remove-Item -Path "$PSScriptRoot\autounattend.xml" -Force -ErrorAction SilentlyContinue
 
 Write-Output "Cleanup check :"
 if (Test-Path -Path "$ScratchDisk\tiny11") {
@@ -590,17 +693,6 @@ if (Test-Path -Path "$PSScriptRoot\oscdimg.exe") {
     }
 } else {
     Write-Output "oscdimg.exe does not exist. No action needed."
-}
-if (Test-Path -Path "$PSScriptRoot\autounattend.xml") {
-    Write-Output "autounattend.xml still exists. Attempting to remove it again..."
-    Remove-Item -Path "$PSScriptRoot\autounattend.xml" -Force -ErrorAction SilentlyContinue
-    if (Test-Path -Path "$PSScriptRoot\autounattend.xml") {
-        Write-Output "Failed to remove autounattend.xml."
-    } else {
-        Write-Output "autounattend.xml removed successfully."
-    }
-} else {
-    Write-Output "autounattend.xml does not exist. No action needed."
 }
 
 # Stop the transcript
