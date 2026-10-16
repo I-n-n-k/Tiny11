@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Scripts to build a trimmed-down Windows 11 image.
+    Scripts to build a trimmed-down Windows 11 image with Visual C++ Runtime auto-installer (RunOnce Method).
 
 .DESCRIPTION
     This is a script created to automate the build of a streamlined Windows 11 image, similar to tiny10.
@@ -83,12 +83,14 @@ if ((Get-ExecutionPolicy) -eq 'Restricted') {
 # Check and run the script as admin if required
 $adminSID = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
 $adminGroup = $adminSID.Translate([System.Security.Principal.NTAccount])
-$myWindowsID=[System.Security.Principal.WindowsIdentity]::GetCurrent()$myWindowsPrincipal=new-object System.Security.Principal.WindowsPrincipal($myWindowsID)$adminRole=[System.Security.Principal.WindowsBuiltInRole]::Administrator
+$myWindowsID=[System.Security.Principal.WindowsIdentity]::GetCurrent()
+$myWindowsPrincipal=new-object System.Security.Principal.WindowsPrincipal($myWindowsID)
+$adminRole=[System.Security.Principal.WindowsBuiltInRole]::Administrator
 if (! $myWindowsPrincipal.IsInRole($adminRole))
 {
     Write-Output "Restarting Tiny11 image creator as admin in a new window, you can close this one."
     $newProcess = new-object System.Diagnostics.ProcessStartInfo "PowerShell";
-    $newProcess.Arguments =$myInvocation.MyCommand.Definition;
+    $newProcess.Arguments = $myInvocation.MyCommand.Definition;
     $newProcess.Verb = "runas";
     [System.Diagnostics.Process]::Start($newProcess);
     exit
@@ -101,15 +103,16 @@ $Host.UI.RawUI.WindowTitle = "Tiny11 image creator"
 Clear-Host
 Write-Output "Welcome to the tiny11 image creator! Release: 09-07-25"
 
-$hostArchitecture =$Env:PROCESSOR_ARCHITECTURE
+$hostArchitecture = $Env:PROCESSOR_ARCHITECTURE
 New-Item -ItemType Directory -Force -Path "$ScratchDisk\tiny11\sources" | Out-Null
 do {
-    if (-not $ISO) {$DriveLetter = Read-Host "Please enter the drive letter for the Windows 11 image"
+    if (-not $ISO) {
+        $DriveLetter = Read-Host "Please enter the drive letter for the Windows 11 image"
     } else {
-        $DriveLetter =$ISO
+        $DriveLetter = $ISO
     }
     if ($DriveLetter -match '^[c-zC-Z]$') {
-        $DriveLetter =$DriveLetter + ":"
+        $DriveLetter = $DriveLetter + ":"
         Write-Output "Drive letter set to $DriveLetter"
     } else {
         Write-Output "Invalid drive letter. Please enter a letter between C and Z."
@@ -119,10 +122,11 @@ do {
 if ((Test-Path "$DriveLetter\sources\boot.wim") -eq $false -or (Test-Path "$DriveLetter\sources\install.wim") -eq $false) {
     if ((Test-Path "$DriveLetter\sources\install.esd") -eq $true) {
         Write-Output "Found install.esd, converting to install.wim..."
-        Get-WindowsImage -ImagePath $DriveLetter\sources\install.esd$index = Read-Host "Please enter the image index"
+        Get-WindowsImage -ImagePath $DriveLetter\sources\install.esd
+        $index = Read-Host "Please enter the image index"
         Write-Output ' '
         Write-Output 'Converting install.esd to install.wim. This may take a while...'
-        Export-WindowsImage -SourceImagePath $DriveLetter\sources\install.esd -SourceIndex $index -DestinationImagePath$ScratchDisk\tiny11\sources\install.wim -Compressiontype Maximum -CheckIntegrity
+        Export-WindowsImage -SourceImagePath $DriveLetter\sources\install.esd -SourceIndex $index -DestinationImagePath $ScratchDisk\tiny11\sources\install.wim -Compressiontype Maximum -CheckIntegrity
     } else {
         Write-Output "Can't find Windows OS Installation files in the specified Drive Letter.."
         Write-Output "Please enter the correct DVD Drive Letter.."
@@ -132,45 +136,47 @@ if ((Test-Path "$DriveLetter\sources\boot.wim") -eq $false -or (Test-Path "$Driv
 
 Write-Output "Copying Windows image..."
 Copy-Item -Path "$DriveLetter\*" -Destination "$ScratchDisk\tiny11" -Recurse -Force | Out-Null
-Set-ItemProperty -Path "$ScratchDisk\tiny11\sources\install.esd" -Name IsReadOnly -Value $false >$null 2>&1
+Set-ItemProperty -Path "$ScratchDisk\tiny11\sources\install.esd" -Name IsReadOnly -Value $false > $null 2>&1
 Remove-Item "$ScratchDisk\tiny11\sources\install.esd" > $null 2>&1
 Write-Output "Copy complete!"
 Start-Sleep -Seconds 2
 Clear-Host
 Write-Output "Getting image information:"
-$ImagesIndex = (Get-WindowsImage -ImagePath$ScratchDisk\tiny11\sources\install.wim).ImageIndex
-while ($ImagesIndex -notcontains$index) {
-    Get-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\install.wim$index = Read-Host "Please enter the image index"
+$ImagesIndex = (Get-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\install.wim).ImageIndex
+while ($ImagesIndex -notcontains $index) {
+    Get-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\install.wim
+    $index = Read-Host "Please enter the image index"
 }
 Write-Output "Mounting Windows image. This may take a while."
 $wimFilePath = "$ScratchDisk\tiny11\sources\install.wim"
 & takeown "/F" $wimFilePath
 & icacls $wimFilePath "/grant" "$($adminGroup.Value):(F)"
 try {
-    Set-ItemProperty -Path $wimFilePath -Name IsReadOnly -Value$false -ErrorAction Stop
+    Set-ItemProperty -Path $wimFilePath -Name IsReadOnly -Value $false -ErrorAction Stop
 } catch {
 	Write-Error "$wimFilePath not found"
 }
 New-Item -ItemType Directory -Force -Path "$ScratchDisk\scratchdir" > $null
-Mount-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\install.wim -Index $index -Path$ScratchDisk\scratchdir
+Mount-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\install.wim -Index $index -Path $ScratchDisk\scratchdir
 
 $imageIntl = & dism /English /Get-Intl "/Image:$($ScratchDisk)\scratchdir"
-$languageLine = $imageIntl -split '\n' \vert{} Where-Object {$_ -match 'Default system UI language : ([a-zA-Z]{2}-[a-zA-Z]{2})' }
+$languageLine = $imageIntl -split '\n' | Where-Object { $_ -match 'Default system UI language : ([a-zA-Z]{2}-[a-zA-Z]{2})' }
 
 if ($languageLine) {
-    $languageCode =$Matches[1]
+    $languageCode = $Matches[1]
     Write-Output "Default system UI language code: $languageCode"
 } else {
     Write-Output "Default system UI language code not found."
 }
 
 $imageInfo = & 'dism' '/English' '/Get-WimInfo' "/wimFile:$($ScratchDisk)\tiny11\sources\install.wim" "/index:$index"
-$lines =$imageInfo -split '\r?\n'
+$lines = $imageInfo -split '\r?\n'
 
-foreach ($line in$lines) {
+foreach ($line in $lines) {
     if ($line -like '*Architecture : *') {
-        $architecture =$line -replace 'Architecture : ',''
-        if ($architecture -eq 'x64') {$architecture = 'amd64'
+        $architecture = $line -replace 'Architecture : ',''
+        if ($architecture -eq 'x64') {
+            $architecture = 'amd64'
         }
         Write-Output "Architecture: $architecture"
         break
@@ -185,7 +191,8 @@ Write-Output "Mounting complete! Performing removal of applications..."
 
 $packages = & 'dism' '/English' "/image:$($ScratchDisk)\scratchdir" '/Get-ProvisionedAppxPackages' |
     ForEach-Object {
-        if ($_ -match 'PackageName : (.*)') {$matches[1]
+        if ($_ -match 'PackageName : (.*)') {
+            $matches[1]
         }
     }
 
@@ -253,11 +260,11 @@ $packagePrefixes = 'AppUp.IntelManagementandSecurityStatus',
 'Microsoft.StorePurchaseApp',
 'Microsoft.Windows.VoiceAccess'
 
-$packagesToRemove =$packages | Where-Object {
-    $packageName =$_
+$packagesToRemove = $packages | Where-Object {
+    $packageName = $_
     $packagePrefixes -contains ($packagePrefixes | Where-Object { $packageName -like "*$_*" })
 }
-foreach ($package in$packagesToRemove) {
+foreach ($package in $packagesToRemove) {
     & 'dism' '/English' "/image:$($ScratchDisk)\scratchdir" '/Remove-ProvisionedAppxPackage' "/PackageName:$package"
 }
 
@@ -267,10 +274,11 @@ foreach ($package in$packagesToRemove) {
 Write-Output "Removing Specific System Component Payloads (CrossDevice, Xbox, GameOverlay, GamingUI, CaptureService)..."
 $systemPackages = & 'dism' '/English' "/image:$($ScratchDisk)\scratchdir" '/Get-Packages' |
     ForEach-Object {
-        if ($_ -match 'Package Identity : (.*(?:crossdevice-webcam\vert{}Xbox\vert{}GamingOverlay\vert{}GameOverlay\vert{}gaming-ui\vert{}captureservice).*)') {$matches[1].Trim()
+        if ($_ -match 'Package Identity : (.*(?:crossdevice-webcam|Xbox|GamingOverlay|GameOverlay|gaming-ui|captureservice).*)') {
+            $matches[1].Trim()
         }
     }
-foreach ($sysPkg in$systemPackages) {
+foreach ($sysPkg in $systemPackages) {
     & 'dism' '/English' "/image:$($ScratchDisk)\scratchdir" '/Remove-Package' "/PackageName:$sysPkg"
 }
 
@@ -279,7 +287,7 @@ foreach ($sysPkg in$systemPackages) {
 # -------------------------------------------------------------
 Write-Output "Removing Optional Capabilities (XPS, WordPad, Steps Recorder, Math Recognizer, WorkFolders)..."
 $capabilities = @('XPS.Viewer~~~~0.0.1.0', 'Microsoft.Windows.WordPad~~~~0.0.1.0', 'App.StepsRecorder~~~~0.0.1.0', 'MathRecognizer~~~~0.0.1.0')
-foreach ($cap in$capabilities) {
+foreach ($cap in $capabilities) {
     & 'dism' '/English' "/image:$($ScratchDisk)\scratchdir" '/Remove-Capability' "/CapabilityName:$cap"
 }
 & 'dism' '/English' "/image:$($ScratchDisk)\scratchdir" '/Disable-Feature' '/FeatureName:WorkFolders-Client' '/Remove'
@@ -297,9 +305,9 @@ $winSxsPaths = @(
     "$ScratchDisk\scratchdir\Windows\WinSxS\*xboxgamingoverlay*"
 )
 
-foreach ($path in$winSxsPaths) {
-    $foundSxS = Get-Item -Path$path -ErrorAction SilentlyContinue
-    foreach ($sxsFolder in$foundSxS) {
+foreach ($path in $winSxsPaths) {
+    $foundSxS = Get-Item -Path $path -ErrorAction SilentlyContinue
+    foreach ($sxsFolder in $foundSxS) {
         Write-Output "Destroying WinSxS Payload: $($sxsFolder.Name)"
         & 'takeown' '/f' $sxsFolder.FullName '/r' '/d' 'Y' | Out-Null
         & 'icacls' $sxsFolder.FullName '/grant' "$($adminGroup.Value):(F)" '/t' '/c' '/q' | Out-Null
@@ -320,9 +328,9 @@ $nukePaths = @(
     "$ScratchDisk\scratchdir\Windows\SystemApps\Microsoft.XboxGameCallableUI*"
 )
 
-foreach ($path in$nukePaths) {
-    $foundFolders = Get-Item -Path$path -ErrorAction SilentlyContinue
-    foreach ($folder in$foundFolders) {
+foreach ($path in $nukePaths) {
+    $foundFolders = Get-Item -Path $path -ErrorAction SilentlyContinue
+    foreach ($folder in $foundFolders) {
         Write-Output "Force Deleting Folder: $($folder.FullName)"
         & 'takeown' '/f' $folder.FullName '/r' '/d' 'Y' | Out-Null
         & 'icacls' $folder.FullName '/grant' "$($adminGroup.Value):(F)" '/t' '/c' '/q' | Out-Null
@@ -338,7 +346,7 @@ $sysFiles = @(
     "CaptureService.dll"
 )
 
-foreach ($file in$sysFiles) {
+foreach ($file in $sysFiles) {
     $target = "$ScratchDisk\scratchdir\Windows\System32\$file"
     if (Test-Path $target) {
         Write-Output "Force Deleting File: $file"
@@ -530,20 +538,48 @@ Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'PauseUpd
 Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'PauseFeatureUpdatesEndTime' 'REG_SZ' '2077-12-31T23:59:59Z'
 Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'PauseQualityUpdatesEndTime' 'REG_SZ' '2077-12-31T23:59:59Z'
 Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'PauseUpdatesExpiryTime' 'REG_SZ' '2077-12-31T23:59:59Z'
-
-# 25. Silent Kill Game Bar URL Protocol (Redirecting ms-gamebar to systray.exe)
-Write-Output "Nullifying ms-gamebar & ms-gamebarservices URL Protocols..."
-& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebar' '/f' '/ve' '/d' 'URL:ms-gamebar' | Out-Null
-& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebar' '/f' '/v' 'URL Protocol' '/d' '' | Out-Null
-& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebar' '/f' '/v' 'NoOpenWith' '/d' '' | Out-Null
-& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebar\shell\open\command' '/f' '/ve' '/d' "`"C:\Windows\System32\systray.exe`"" | Out-Null
-
-& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebarservices' '/f' '/ve' '/d' 'URL:ms-gamebarservices' | Out-Null
-& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebarservices' '/f' '/v' 'URL Protocol' '/d' '' | Out-Null
-& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebarservices' '/f' '/v' 'NoOpenWith' '/d' '' | Out-Null
-& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebarservices\shell\open\command' '/f' '/ve' '/d' "`"C:\Windows\System32\systray.exe`"" | Out-Null
 # ==============================================================
 # FSOS-X PLAYBOOK TWEAKS & CUSTOM SETTINGS END
+# ==============================================================
+
+# ==============================================================
+# VISUAL RUNTIME AUTO-INSTALLER INTEGRATION (ALTERNATIVE 1 - BATCH SCRIPT)
+# ==============================================================
+Write-Output "Configuring Visual Runtime auto-installer via RunOnce (Batch Method)..."
+
+# Mengarahkan pencarian ke folder VCRedist dan mencari file spesifik
+$vcFolder = "$PSScriptRoot\VCRedist"
+$batFile = Get-ChildItem -Path $vcFolder -Filter "install_all_vcredist.bat" -ErrorAction SilentlyContinue | Select-Object -First 1
+
+if ((Test-Path $vcFolder) -and $batFile) {
+    Write-Output "Found Visual Runtime folder and batch script: $($batFile.Name)"
+    
+    # Salin seluruh folder VCRedist beserta isinya ke dalam Setup Windows
+    $targetFolder = "$ScratchDisk\scratchdir\Windows\Setup\VCRedist"
+    Copy-Item -Path $vcFolder -Destination $targetFolder -Recurse -Force
+    Write-Output "Copied VCRedist folder to C:\Windows\Setup\VCRedist inside WIM image."
+    
+    # Membuat script wrapper .cmd di root Windows untuk menjalankan dan membersihkan
+    # Perintah 'start /wait' mencegah 'exit' pada file batch bawaan membunuh proses RunOnce
+    $wrapperScript = "$ScratchDisk\scratchdir\Windows\InstallVCRuntime.cmd"
+    @"
+@echo off
+start /wait "" "C:\Windows\Setup\VCRedist\$($batFile.Name)"
+rmdir /s /q "C:\Windows\Setup\VCRedist"
+del "%~f0"
+"@ | Out-File -FilePath $wrapperScript -Encoding ASCII
+
+    # Tambahkan command eksekusi wrapper ke registry RunOnce
+    $runOnceCmd = "cmd.exe /c C:\Windows\InstallVCRuntime.cmd"
+    Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce' 'InstallVC' 'REG_SZ' $runOnceCmd
+    
+    Write-Output "RunOnce registry key added successfully!"
+} else {
+    Write-Output "------------------------------------------------------------------------"
+    Write-Output "WARNING: VCRedist folder or 'install_all_vcredist.bat' not found in $PSScriptRoot\VCRedist"
+    Write-Output "Please create a folder named 'VCRedist', put 'install_all_vcredist.bat' and all vcredist .exe files inside."
+    Write-Output "------------------------------------------------------------------------"
+}
 # ==============================================================
 
 Write-Host "Deleting scheduled task definition files..."
@@ -584,8 +620,8 @@ Write-Output "Mounting boot image:"
 $wimFilePath = "$ScratchDisk\tiny11\sources\boot.wim"
 & takeown "/F" $wimFilePath | Out-Null
 & icacls $wimFilePath "/grant" "$($adminGroup.Value):(F)"
-Set-ItemProperty -Path $wimFilePath -Name IsReadOnly -Value$false
-Mount-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\boot.wim -Index 2 -Path$ScratchDisk\scratchdir
+Set-ItemProperty -Path $wimFilePath -Name IsReadOnly -Value $false
+Mount-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\boot.wim -Index 2 -Path $ScratchDisk\scratchdir
 Write-Output "Loading registry..."
 reg load HKLM\zCOMPONENTS $ScratchDisk\scratchdir\Windows\System32\config\COMPONENTS
 reg load HKLM\zDEFAULT $ScratchDisk\scratchdir\Windows\System32\config\default
@@ -631,7 +667,7 @@ if ([System.IO.Directory]::Exists($ADKDepTools)) {
 
     if (-not (Test-Path -Path $localOSCDIMGPath)) {
         Write-Output "Downloading oscdimg.exe..."
-        Invoke-WebRequest -Uri $url -OutFile$localOSCDIMGPath
+        Invoke-WebRequest -Uri $url -OutFile $localOSCDIMGPath
 
         if (Test-Path $localOSCDIMGPath) {
             Write-Output "oscdimg.exe downloaded successfully."
@@ -643,7 +679,7 @@ if ([System.IO.Directory]::Exists($ADKDepTools)) {
         Write-Output "oscdimg.exe already exists locally."
     }
 
-    $OSCDIMG =$localOSCDIMGPath
+    $OSCDIMG = $localOSCDIMGPath
 }
 
 & "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$ScratchDisk\tiny11\boot\etfsboot.com#pEF,e,b$ScratchDisk\tiny11\efi\microsoft\boot\efisys.bin" "$ScratchDisk\tiny11" "$PSScriptRoot\tiny11.iso"
