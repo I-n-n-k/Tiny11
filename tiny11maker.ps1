@@ -539,6 +539,18 @@ Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'PauseUpd
 Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'PauseFeatureUpdatesEndTime' 'REG_SZ' '2077-12-31T23:59:59Z'
 Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'PauseQualityUpdatesEndTime' 'REG_SZ' '2077-12-31T23:59:59Z'
 Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\UX\Settings' 'PauseUpdatesExpiryTime' 'REG_SZ' '2077-12-31T23:59:59Z'
+
+# 25. Silent Kill Game Bar URL Protocol (Redirecting ms-gamebar to systray.exe)
+Write-Output "Nullifying ms-gamebar & ms-gamebarservices URL Protocols..."
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebar' '/f' '/ve' '/d' 'URL:ms-gamebar' | Out-Null
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebar' '/f' '/v' 'URL Protocol' '/d' '' | Out-Null
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebar' '/f' '/v' 'NoOpenWith' '/d' '' | Out-Null
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebar\shell\open\command' '/f' '/ve' '/d' "`"C:\Windows\System32\systray.exe`"" | Out-Null
+
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebarservices' '/f' '/ve' '/d' 'URL:ms-gamebarservices' | Out-Null
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebarservices' '/f' '/v' 'URL Protocol' '/d' '' | Out-Null
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebarservices' '/f' '/v' 'NoOpenWith' '/d' '' | Out-Null
+& 'reg' 'add' 'HKLM\zSOFTWARE\Classes\ms-gamebarservices\shell\open\command' '/f' '/ve' '/d' "`"C:\Windows\System32\systray.exe`"" | Out-Null
 # ==============================================================
 # FSOS-X PLAYBOOK TWEAKS & CUSTOM SETTINGS END
 # ==============================================================
